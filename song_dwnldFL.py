@@ -27,10 +27,9 @@ from kivy.uix.screenmanager import ScreenManager, Screen
 from kivy.properties import ObjectProperty
 os.environ['KIVY_GL_BACKEND'] = 'angle_sdl2'
 
+import config
 
-
-api_key = "AIzaSyCHupu7nmZci--NuPdLYQyYnguiNUUbUbU"
-youtube = build('youtube','v3',developerKey=api_key)
+youtube = build('youtube','v3',developerKey=config.api_key)
 scopes = ["https://www.googleapis.com/auth/youtube.readonly"]
 
 
@@ -125,7 +124,7 @@ def main(playlistId):
         open("SongList.txt","w")
 
     youtube = api_response()
-
+    # playlistId = "PLaCftlCWzVXTbo0r2nHEGvIHTMsK7LZDF" #uncomment to manually enter playlist Id
     request = youtube.playlistItems().list(
         part="snippet,contentDetails",
         maxResults=50,
@@ -194,7 +193,9 @@ def main(playlistId):
 
     for diff in t2s-t1s:
         with youtube_dl.YoutubeDL(download_options) as dl:
-            dl.download([diff]) 
+            print('Difference')
+            print (t2.index(diff)+1, diff)
+            # dl.download([diff]) 
 
 class MainWindow(Screen):
     name = ObjectProperty(None)
