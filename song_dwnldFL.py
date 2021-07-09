@@ -194,10 +194,7 @@ def main(playlistId):
 
     for diff in t2s-t1s:
         with youtube_dl.YoutubeDL(download_options) as dl:
-            print('Difference')
-            print (t2.index(diff)+1, diff)
-            # dl.download([diff]) 
-
+            dl.download([diff]) 
 
 class MainWindow(Screen):
     name = ObjectProperty(None)
