@@ -1,0 +1,27 @@
+<MainWindow>:
+    name: "main"
+    playlistID: playlistID
+
+
+    FloatLayout:
+        Label: 
+            text: "Playlist ID: "
+            font_size: '20sp'
+            pos_hint: {"x":0.1, "top":0.9}
+            size_hint: 0.35, 0.15
+
+        TextInput:
+            id: playlistID
+            font_size: '30sp'
+            multiline: False
+            pos_hint: {"x": 0.45 , "top":0.9}
+            size_hint: 0.35, 0.1
+
+
+        Button: 
+            pos_hint:{"x":0.2, "y": 0.5}
+            size_hint:0.6,0.1
+            text: "Download"
+            on_release:
+                root.manager.transition.direction = "down"
+                root.downloadBtn()

@@ -1,38 +1,46 @@
- #Edward Smith
- #December 2019
-  # -*- coding: utf-8 -*-
+# Edward Smith
+# -*- coding: utf-8 -*-
 # Sample Python code for youtube.playlistItems.list
 # See instructions for running these code samples locally:
 # https://developers.google.com/explorer-help/guides/code_samples#python
+# https://developers.google.com/youtube/v3/docs/playlistItems/list
+
 
 
 from __future__ import unicode_literals
 import os
-import os.path
-import requests
 from os import path
+import requests
 import json 
-import google_auth_oauthlib.flow
-import googleapiclient.discovery
-from google.oauth2.credentials import Credentials
-import googleapiclient.errors
-from googleapiclient.discovery import build
 import youtube_dl
-import os
-import difflib,sys
 from sys import argv
+
+import google_auth_oauthlib.flow
+from google.oauth2.credentials import Credentials
+from googleapiclient.discovery import build
+import googleapiclient.discovery
+import googleapiclient.errors
+
+from kivy.app import App
+from kivy.lang import Builder
+from kivy.uix.screenmanager import ScreenManager, Screen
+from kivy.properties import ObjectProperty
+os.environ['KIVY_GL_BACKEND'] = 'angle_sdl2'
+
+
 
 api_key = "AIzaSyCHupu7nmZci--NuPdLYQyYnguiNUUbUbU"
 youtube = build('youtube','v3',developerKey=api_key)
 scopes = ["https://www.googleapis.com/auth/youtube.readonly"]
 
+
 #LOOKS THROUGH JSON FILE AND WRITES SONGS & YOUTUBELINKS TO TXT FILE
-def songList(response):
-    os.chdir(r"C:\\Music")
-    if not path.exists("SongsNew.txt"):
-        songsnewTxt = open("SongsNew.txt","x")
+def songList(response, parent_dir):
+    os.chdir(parent_dir)
+    if not path.exists("SongListNew.txt"):
+        songsnewTxt = open("SongListNew.txt","x")
     youB = ['https://www.youtube.com/watch?v=','&list=']
-    songsnewTxt = open("SongsNew.txt","a")
+    songsnewTxt = open("SongListNew.txt","a")
     for item in response['items']:
         print(item['snippet']['title'] + " video_id = "+ item['snippet']['resourceId']['videoId'])
         vidId = item['snippet']['resourceId']['videoId']
@@ -46,7 +54,8 @@ def songList(response):
         songsnewTxt.write('\n')
         print(nyouB)
     songsnewTxt.close()
-    return pos
+
+
 #REFRESHING ACCESS TOKEN
 def refreshToken(client_id, client_secret, refresh_token):
         params = {
@@ -68,7 +77,8 @@ def api_response():
     os.environ["OAUTHLIB_INSECURE_TRANSPORT"] = "1"
     api_service_name = "youtube"
     api_version = "v3"
-    client_secrets_file = r'C:\Users\edams\AppData\Roaming\Code\User\VSC_Workspace\.vscode\python\.vscode\client_secret_440876599079-lotmaj2kiqssjodtf8k31f98uee6gl7f.apps.googleusercontent.com.json'
+    #ONLY NEED CLIENT SECRET FILE IF TRYING TO ACCESS PRIVATE DATA (i.e private Youtube playlist)
+    client_secrets_file = r'C:\Coding Workspace\SongDownloader\client_secret_440876599079-lotmaj2kiqssjodtf8k31f98uee6gl7f.apps.googleusercontent.com.json'
 
     #USING TEXT FILE TO RETREIVE CREDENTIALS
     if os.path.isfile("credentials.json"):
@@ -96,53 +106,68 @@ def api_response():
             json.dump(creds_data, outfile)
     return build(api_service_name, api_version, credentials = creds)
 
-def main():
+
+def main(playlistId):
+
     #Creating Directories
-    if not os.path.exists(r'C:\Music\Songs'):
-        os.chdir(r"C:\\Music")
-        os.mkdir(r'C:\\Music\Songs')
-    else: 
-        os.chdir(r"C:\Music\Songs")
-    os.chdir(r"C:\Music")
-    if not path.exists("Songs.txt"):
-        songsTxt = open("Songs.txt","w")
+    directory = 'Music'
+    parent_dir = os.path.join('C:/', directory)
+    songFolder = os.path.join(parent_dir, 'Songs') 
+
+    if not os.path.exists(parent_dir):
+        os.mkdir(parent_dir)
+          
+    if not os.path.exists(songFolder):
+        os.mkdir(songFolder)
+
+    os.chdir(parent_dir)
+    if not os.path.exists("SongList.txt"):
+        open("SongList.txt","w")
+
     youtube = api_response()
+
     request = youtube.playlistItems().list(
         part="snippet,contentDetails",
         maxResults=50,
-        playlistId="PLaCftlCWzVXT6grOrFK-nUyQSyDCOLEdX"
+        playlistId=playlistId
     )
     response = request.execute()
-    songList(response)
-    nxtPgTokn = response['nextPageToken']
-    #Going through all the differenent pages of results
-    if nxtPgTokn:
-        print("Next page token outer:",nxtPgTokn)
-        while nxtPgTokn:
-            request = youtube.playlistItems().list(
-                part="snippet,contentDetails",
-                maxResults=50,
-                pageToken = nxtPgTokn,
-                playlistId="PLaCftlCWzVXT6grOrFK-nUyQSyDCOLEdX"
-            )
-            response = request.execute()
-            songList(response)
-            try:
-                nxtPgTokn = response['nextPageToken']
-                print("Next page token inner:",nxtPgTokn)
-            except KeyError:
-                print("No next pg token")
-                break
+    songList(response, parent_dir)
+    
+    try: 
+        nxtPgTokn = response['nextPageToken']
+    
+        #Going through all the differenent pages of results
+        if nxtPgTokn:
+            print("Next page token outer:",nxtPgTokn)
+            while nxtPgTokn:
+                request = youtube.playlistItems().list(
+                    part="snippet,contentDetails",
+                    maxResults=50,
+                    pageToken = nxtPgTokn,
+                    playlistId=playlistId
+                )
+                response = request.execute()
+                songList(response, parent_dir)
+                try:
+                    nxtPgTokn = response['nextPageToken']
+                    print("Next page token inner:",nxtPgTokn)
+                except KeyError:
+                    print("No next page token")
+                    break
+
+    except KeyError:    
+            print("No next page token")
+
     #SEEING DIFFERENCE BETWEEN TXT FILES
-    with open('Songs.txt') as f:
+    with open('SongList.txt') as f:
         t1 = f.read().splitlines()
         t1s = set(t1)
-    with open('SongsNew.txt') as f:
+    with open('SongListNew.txt') as f:
         t2 = f.read().splitlines()
         t2s = set(t2)
-    os.chdir(r"C:\Music\Songs")
-    #in file2 but not file1
-    print ("Only in file2")
+    
+    
     #DOWNLOAD FILES THAT ARE ONLY IN NEW SONGS TXT
     download_options = {
     'format':'bestaudio/best',
@@ -154,20 +179,51 @@ def main():
         'preferredquality': '192',
     }],
     }
-    for diff in t2s-t1s:
-        with youtube_dl.YoutubeDL(download_options) as dl:
-            print (t2.index(diff)+1, diff)    
-            dl.download([diff])
-            
-    #COPY SONGS FROM NEW SONGSTXT TO SONGS TXT
-    os.chdir(r"C:\Music")
-    sN=open('SongsNew.txt',"r")  
-    s=open('Songs.txt','w')
+
+ #COPY SONGS FROM NEW SONGSTXT TO SONGS TXT
+    os.chdir(parent_dir)
+    sN=open('SongListNew.txt',"r")  
+    s=open('SongList.txt','w')
     for x in sN.readlines():
         s.write(x)
     sN.close()
-    s.close()
-    open('SongsNew.txt', "w").close()
+    s.close() 
+    open('SongListNew.txt', "w").close()
+
+    os.chdir(songFolder)
+
+    for diff in t2s-t1s:
+        with youtube_dl.YoutubeDL(download_options) as dl:
+            print('Difference')
+            print (t2.index(diff)+1, diff)
+            # dl.download([diff]) 
+
+
+class MainWindow(Screen):
+    name = ObjectProperty(None)
+    playlistID = ObjectProperty(None)
+    # current = ""
+
+    def downloadBtn(self):
+        # sm.current = "download"
+        if self.playlistID.text != "":
+            playlistId = self.playlistID.text
+            main(playlistId)
+        else:
+            print('Playlist ID cannot be empty')
+
+
+class WindowManager(ScreenManager):
+    pass
+
+kv = Builder.load_file("UI.kv")
+sm = WindowManager()
+sm.add_widget(MainWindow())
+
+class MainApp(App):
+    def build(self):
+        return sm
+
 
 if __name__ == "__main__":
-    main()
+    MainApp().run()
