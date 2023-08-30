@@ -12,7 +12,7 @@ import os
 from os import path
 import requests
 import json 
-import youtube_dl
+from yt_dlp import YoutubeDL
 from sys import argv
 
 import google_auth_oauthlib.flow
@@ -123,7 +123,7 @@ def main(playlistId):
     if not os.path.exists("SongList.txt"):
         open("SongList.txt","w")
 
-    youtube = api_response()
+    # youtube = api_response()  #Only uncomment if trying to access a private playlist
     # playlistId = "PLaCftlCWzVXTbo0r2nHEGvIHTMsK7LZDF" #uncomment to manually enter playlist Id
     request = youtube.playlistItems().list(
         part="snippet,contentDetails",
@@ -158,18 +158,10 @@ def main(playlistId):
     except KeyError:    
             print("No next page token")
 
-    #SEEING DIFFERENCE BETWEEN TXT FILES
-    with open('SongList.txt') as f:
-        t1 = f.read().splitlines()
-        t1s = set(t1)
-    with open('SongListNew.txt') as f:
-        t2 = f.read().splitlines()
-        t2s = set(t2)
-    
-    
-    #DOWNLOAD FILES THAT ARE ONLY IN NEW SONGS TXT
+  
     download_options = {
     'format':'bestaudio/best',
+    'ffmpeg_location':os.path.realpath('C:\\Users\\edams\\AppData\\Local\\Programs\\Python\\Python39\\Lib\\site-packages\\yt_dlp'),
     'outtmpl': '%(title)s.%(ext)s',
     'nocheckcertificate':True,
     'postprocessors':[{ 
@@ -179,7 +171,25 @@ def main(playlistId):
     }],
     }
 
- #COPY SONGS FROM NEW SONGSTXT TO SONGS TXT
+
+  #SEEING DIFFERENCE BETWEEN TXT FILES
+    with open('SongList.txt') as f:
+        t1 = f.read().splitlines()
+        t1s = set(t1)
+    with open('SongListNew.txt') as f:
+        t2 = f.read().splitlines()
+        t2s = set(t2)
+    
+    os.chdir(songFolder)
+
+   #DOWNLOAD FILES THAT ARE ONLY IN NEW SONGS TXT
+    for diff in t2s-t1s:
+        with YoutubeDL(download_options) as dl:
+            print(diff)
+            dl.download([diff]) 
+
+
+#COPY SONGS FROM NEW SONGSTXT TO SONGS TXT - "SONG TXT" will be the database/record of all songs previously downloaded
     os.chdir(parent_dir)
     sN=open('SongListNew.txt',"r")  
     s=open('SongList.txt','w')
@@ -187,14 +197,9 @@ def main(playlistId):
         s.write(x)
     sN.close()
     s.close() 
-    open('SongListNew.txt', "w").close()
+    open('SongListNew.txt', "w").close()    #Erases all the contents (songs URL's) in SongListNew.txt
 
-    os.chdir(songFolder)
 
-    for diff in t2s-t1s:
-        with youtube_dl.YoutubeDL(download_options) as dl:
-            print (t2.index(diff)+1, diff)
-            # dl.download([diff]) 
 
 class MainWindow(Screen):
     name = ObjectProperty(None)
